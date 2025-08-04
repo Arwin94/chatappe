@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pastel Chat App</title>
+  <style>
+    body {
+      background: #297bcd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+    }
+
+    #chat {
+      background: #ffffff;
+      color: #333;
+      width: 360px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(115, 187, 99, 0.483);
+      position: relative;
+    }
+
+    header {
+      background: #a0c4ff;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.2rem;
+      color: #333;
+      position: relative;
+    }
+
+    #userCount {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      font-size: 0.8rem;
+      color: #333;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      list-style: none;
+    }
+
+    #messages li {
+      margin: 0.5rem 0;
+      padding: 0.7rem 1rem;
+      border-radius: 15px;
+      max-width: 80%;
+      word-wrap: break-word;
+      background: #f1f1f1;
+      color: #333;
+    }
+
+    #messages .sender {
+      display: block;
+      font-size: 0.75rem;
+      color: #555;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    #typing {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      color: #777;
+      height: 1rem;
+    }
+
+    form {
+      display: flex;
+      padding: 0.5rem;
+      background: #dee2e6;
+    }
+
+    form input {
+      border: none;
+      padding: 0.5rem 1rem;
+      flex: 1;
+      border-radius: 20px;
+      margin-right: 0.5rem;
+      background: #ffffff;
+      color: #333;
+    }
+
+    form button {
+      background: #a0c4ff;
+      border: none;
+      color: #333;
+      padding: 0 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    #login {
+      position: absolute;
+      background: rgba(240, 244, 248, 0.95);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    #login input {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 1rem;
+      width: 200px;
+    }
+
+    #login button {
+      background: #a0c4ff;
+      border: none;
+      color: #333;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <header>
+      Pastel Chat
+      <div id="userCount"></div>
+    </header>
+    <ul id="messages"></ul>
+    <div id="typing"></div>
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Type your message..." />
+      <button type="submit">Send</button>
+    </form>
+    <div id="login">
+      <input id="name" placeholder="Enter your name" />
+      <button id="joinBtn">Join Chat</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+    const typing = document.getElementById('typing');
+    const userCount = document.getElementById('userCount');
+    const login = document.getElementById('login');
+    const nameInput = document.getElementById('name');
+    const joinBtn = document.getElementById('joinBtn');
+
+    let userName = '';
+    let userColor = '';
+
+    function getRandomPastelColor() {
+      const pastelColors = [
+        '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff',
+        '#a0c4ff', '#bdb2ff', '#ffc6ff'
+      ];
+      return pastelColors[Math.floor(Math.random() * pastelColors.length)];
+    }
+
+    joinBtn.addEventListener('click', () => {
+      if (nameInput.value.trim()) {
+        userName = nameInput.value.trim();
+        userColor = getRandomPastelColor();
+        login.style.display = 'none';
+      }
+    });
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (input.value.trim()) {
+        socket.emit('chat message', {
+          name: userName,
+          message: input.value.trim(),
+          color: userColor
+        });
+        input.value = ''; // clear after sending
+      }
+    });
+
+    input.addEventListener('input', function() {
+      if (userName) {
+        socket.emit('typing', userName);
+      }
+    });
+
+    socket.on('user count', function(count) {
+      userCount.textContent = `👥 ${count}`;
+    });
+
+    socket.on('chat message', function(data) {
+      const item = document.createElement('li');
+      item.style.backgroundColor = data.color;
+      item.innerHTML = `
+        ${data.message}
+        <span class="sender">— ${data.name}</span>
+      `;
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    socket.on('typing', function(msg) {
+      typing.textContent = msg;
+    });
+  </script>
+</body>
+</html>
